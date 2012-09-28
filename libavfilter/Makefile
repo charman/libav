@@ -35,6 +35,7 @@ OBJS-$(CONFIG_CHANNELSPLIT_FILTER)           += af_channelsplit.o
 OBJS-$(CONFIG_JOIN_FILTER)                   += af_join.o
 OBJS-$(CONFIG_RESAMPLE_FILTER)               += af_resample.o
 OBJS-$(CONFIG_VOLUME_FILTER)                 += af_volume.o
+OBJS-$(CONFIG_VOLUMEWARP_FILTER)             += af_volumewarp.o
 
 OBJS-$(CONFIG_ANULLSRC_FILTER)               += asrc_anullsrc.o
 

@@ -24,8 +24,13 @@
  * based on ffmpeg.c code
  */
 
+
 #include "libavutil/audioconvert.h"
+#include "libavutil/common.h"
 #include "libavutil/eval.h"
+#include "libavutil/float_dsp.h"
+#include "libavutil/mathematics.h"
+
 #include "audio.h"
 #include "avfilter.h"
 #include "formats.h"

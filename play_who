@@ -1,0 +1,27 @@
+#!/bin/bash
+while [ 1 ]; do
+    # -re     Read input at native frame rate. Mainly used to simulate a grab device.
+    # -ac 2   Set number of audio channels
+    # -f      Force input or output format
+    # -vn     Disable video
+    ./avconv \
+	-re          \
+	-i ~/Who.mp3 \
+        -ac 2        \
+	-vn          \
+	-f flv       \
+	rtmp://roc/live/timewarp
+
+    #  The call to sleep makes it easier to terminate the script.  
+    #
+    #  avconv intercepts the Ctrl-C signal.  Without the sleep call, the while
+    #  loop restarts avconv a fraction of a second after it is killed - so
+    #  repatedly pressing Ctrl-C would repeatedly kill newly spawned copies of
+    #  avconv without stopping the script.  With the sleep delay, two quick
+    #  Ctrl-C's will kill avconv and then the script.
+    echo "avconv complete"
+    echo "Pausing 5 seconds..."
+    sleep 5
+    echo
+    echo "Restarting..."
+done

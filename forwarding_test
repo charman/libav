@@ -1,0 +1,10 @@
+#!/bin/bash
+./avconv \
+    -analyzeduration 500000 \
+    -i rtmp://roc/live/timewarp \
+    -ar 44100 \
+    -ac 2 \
+    -sample_fmt s16 \
+    -vn \
+    -f flv \
+    rtmp://roc/live/timewarp2

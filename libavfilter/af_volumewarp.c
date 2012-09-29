@@ -48,9 +48,9 @@ typedef struct {
     float volume;
     int volume_i;
     
-    FILE *metronomepipe;
-    int metronomepipe_fd;
-    char *metronomepipe_str;
+    FILE *gainpipe;
+    int gainpipe_fd;
+    char *gainpipe_str;
 
 } VolumewarpContext;
 
@@ -59,7 +59,7 @@ typedef struct {
 // #define F AV_OPT_FLAG_FILTERING_PARAM
 #define F 0
 static const AVOption volumewarp_options[] = {
-    { "metronomepipe", "Name of FIFO paper used to receive metronome commands.", OFFSET(metronomepipe_str), AV_OPT_TYPE_STRING, .flags = A|F },
+    { "gainpipe", "Name of FIFO paper used to receive metronome commands.", OFFSET(gainpipe_str), AV_OPT_TYPE_STRING, .flags = A|F },
     { NULL },
 };
 
@@ -88,11 +88,11 @@ static av_cold int init(AVFilterContext *ctx, const char *args)
     if ((ret = av_set_options_string(s, args, "=", ":")) < 0)
         return ret;
 
-    av_log(ctx, AV_LOG_INFO, "\n\nmetronomepipe = [%s]\n\n", s->metronomepipe_str);
+    av_log(ctx, AV_LOG_INFO, "\n\ngainpipe = [%s]\n\n", s->gainpipe_str);
 
 
     //  Open metronome pipe for non-blocking input
-    if ((s->metronomepipe_fd = open(s->metronomepipe_str, O_RDONLY | O_NONBLOCK)) == -1) {
+    if ((s->gainpipe_fd = open(s->gainpipe_str, O_RDONLY | O_NONBLOCK)) == -1) {
         av_log(ctx, AV_LOG_ERROR, "Unable to open metronome pipe.\n");
         return AVERROR(EINVAL);
     }
@@ -100,7 +100,7 @@ static av_cold int init(AVFilterContext *ctx, const char *args)
         av_log(ctx, AV_LOG_INFO, "Opened metronome pipe.\n");
     }
 
-    if ((s->metronomepipe = fdopen(s->metronomepipe_fd, "r")) == NULL) {
+    if ((s->gainpipe = fdopen(s->gainpipe_fd, "r")) == NULL) {
       av_log(ctx, AV_LOG_ERROR, "Unable to open metronome pipe file descriptor.\n");
       return AVERROR(EINVAL);
     }
@@ -122,7 +122,7 @@ static void uninit(AVFilterContext *ctx)
 {
     VolumewarpContext *vol = ctx->priv;
 
-    fclose(vol->metronomepipe);
+    fclose(vol->gainpipe);
 }
 
 static int filter_samples(AVFilterLink *inlink, AVFilterBufferRef *insamples)
@@ -137,12 +137,12 @@ static int filter_samples(AVFilterLink *inlink, AVFilterBufferRef *insamples)
 
 
     //  Non-blockingly read volume from pipe
-    if (fread(&new_volume, sizeof(double), 1, vol->metronomepipe) == 1) {
+    if (fread(&new_volume, sizeof(double), 1, vol->gainpipe) == 1) {
         vol->volume = new_volume;
         vol->volume_i = (int)(vol->volume * 256 + 0.5);
         av_log(ctx, AV_LOG_INFO, "Volume = %f (%d)\n", vol->volume, vol->volume_i);
     }
-    else if (ferror(vol->metronomepipe) && errno != EAGAIN) {
+    else if (ferror(vol->gainpipe) && errno != EAGAIN) {
         av_log(ctx, AV_LOG_ERROR, "Error reading from metronome pipe.\n");
     }
 

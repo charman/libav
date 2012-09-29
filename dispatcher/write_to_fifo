@@ -22,12 +22,12 @@ fd = os.open(pipename, os.O_WRONLY)
 
 try:
     while 1:
-        print "Volume = 25%"
-        os.write(fd, struct.pack('d', 0.25))
-        time.sleep(1)
-        print "Volume = 100%"
-        os.write(fd, struct.pack('d', 1.0))
-        time.sleep(1)
+        print "Tempo = 0.5"
+        os.write(fd, struct.pack('d', 0.5))
+        time.sleep(2)
+        print "Temp = 1.5"
+        os.write(fd, struct.pack('d', 1.5))
+        time.sleep(2)
 except OSError as e:
     if e.errno == 32: 
         print "Exception caught - deleting pipe and exiting"

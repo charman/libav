@@ -39,6 +39,7 @@
  */
 
 #include <float.h>
+#include <fcntl.h>       //  O_RDONLY, O_NONBLOCK
 #include "libavcodec/avfft.h"
 #include "libavutil/audioconvert.h"
 #include "libavutil/avassert.h"
@@ -90,6 +91,8 @@ typedef enum {
  * Filter state machine
  */
 typedef struct {
+    const AVClass *class;
+
     // ring-buffer of input samples, necessary because some times
     // input fragment position may be adjusted backwards:
     uint8_t *buffer;
@@ -150,7 +153,29 @@ typedef struct {
     uint8_t *dst_end;
     uint64_t nsamples_in;
     uint64_t nsamples_out;
+
+    FILE *metronomepipe;
+    int metronomepipe_fd;
+    char *metronomepipe_str;
 } TimewarpContext;
+
+#define OFFSET(x) offsetof(TimewarpContext, x)
+#define A AV_OPT_FLAG_AUDIO_PARAM
+// #define F AV_OPT_FLAG_FILTERING_PARAM
+#define F 0
+static const AVOption timewarp_options[] = {
+    { "metronomepipe", "Name of FIFO paper used to receive metronome commands.", OFFSET(metronomepipe_str), AV_OPT_TYPE_STRING, .flags = A|F },
+    { NULL },
+};
+
+static const AVClass timewarp_class = {
+  .class_name = "timewarp filter",
+  .item_name  = av_default_item_name,
+  .option     = timewarp_options,
+  .version    = LIBAVUTIL_VERSION_INT,
+};
+
+
 
 /**
  * Reset filter to initial state, do not deallocate existing local buffers.
@@ -300,6 +325,7 @@ static int yae_reset(TimewarpContext *timewarp,
     return 0;
 }
 
+/*
 static int yae_set_tempo(AVFilterContext *ctx, const char *arg_tempo)
 {
     TimewarpContext *timewarp = ctx->priv;
@@ -320,6 +346,7 @@ static int yae_set_tempo(AVFilterContext *ctx, const char *arg_tempo)
     timewarp->tempo = tempo;
     return 0;
 }
+*/
 
 inline static AudioFragment *yae_curr_frag(TimewarpContext *timewarp)
 {
@@ -957,19 +984,48 @@ static int yae_flush(TimewarpContext *timewarp,
 static av_cold int init(AVFilterContext *ctx, const char *args)
 {
     TimewarpContext *timewarp = ctx->priv;
+    int ret;
 
     // NOTE: this assumes that the caller has memset ctx->priv to 0:
     timewarp->format = AV_SAMPLE_FMT_NONE;
     timewarp->tempo  = 1.0;
     timewarp->state  = YAE_LOAD_FRAGMENT;
 
-    return args ? yae_set_tempo(ctx, args) : 0;
+    timewarp->class = &timewarp_class;
+    av_opt_set_defaults(timewarp);
+
+    if ((ret = av_set_options_string(timewarp, args, "=", ":")) < 0) {
+        av_log(ctx, AV_LOG_ERROR, "Error parsing options string '%s'.\n", args);
+        return ret;
+    }
+
+    av_log(ctx, AV_LOG_INFO, "\n\nmetronomepipe = [%s]\n\n", timewarp->metronomepipe_str);
+
+    //  Open metronome pipe for non-blocking input
+    if ((timewarp->metronomepipe_fd = open(timewarp->metronomepipe_str, O_RDONLY | O_NONBLOCK)) == -1) {
+        av_log(ctx, AV_LOG_ERROR, "Unable to open metronome pipe.\n");
+        return AVERROR(EINVAL);
+    }
+    else {
+        av_log(ctx, AV_LOG_INFO, "Opened metronome pipe.\n");
+    }
+
+    if ((timewarp->metronomepipe = fdopen(timewarp->metronomepipe_fd, "r")) == NULL) {
+      av_log(ctx, AV_LOG_ERROR, "Unable to open metronome pipe file descriptor.\n");
+      return AVERROR(EINVAL);
+    }
+    else {
+        av_log(ctx, AV_LOG_INFO, "Opened metronome pipe file descriptor.\n");
+    }
+
+    return 0;
 }
 
 static av_cold void uninit(AVFilterContext *ctx)
 {
     TimewarpContext *timewarp = ctx->priv;
     yae_release_buffers(timewarp);
+    fclose(timewarp->metronomepipe);
 }
 
 static int query_formats(AVFilterContext *ctx)
@@ -1052,12 +1108,24 @@ static int filter_samples(AVFilterLink *inlink,
     AVFilterContext  *ctx = inlink->dst;
     TimewarpContext *timewarp = ctx->priv;
     AVFilterLink *outlink = ctx->outputs[0];
+    double new_tempo;
 
     int n_in = src_buffer->audio->nb_samples;
     int n_out = (int)(0.5 + ((double)n_in) / timewarp->tempo);
 
     const uint8_t *src = src_buffer->data[0];
     const uint8_t *src_end = src + n_in * timewarp->stride;
+
+    //  Non-blockingly read tempo from pipe
+    if (fread(&new_tempo, sizeof(double), 1, timewarp->metronomepipe) == 1) {
+        av_log(ctx, AV_LOG_INFO, "New Tempo = %f\n", new_tempo);
+	timewarp->tempo = new_tempo;
+	n_out = (int)(0.5 + ((double)n_in) / timewarp->tempo);
+    }
+    else if (ferror(timewarp->metronomepipe) && errno != EAGAIN) {
+        av_log(ctx, AV_LOG_ERROR, "Error reading from metronome pipe.\n");
+    }
+
 
     while (src < src_end) {
         if (!timewarp->dst_buffer) {

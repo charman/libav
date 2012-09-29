@@ -1131,6 +1131,7 @@ static int request_frame(AVFilterLink *outlink)
     return ret;
 }
 
+/*
 static int process_command(AVFilterContext *ctx,
                            const char *cmd,
                            const char *arg,
@@ -1140,6 +1141,7 @@ static int process_command(AVFilterContext *ctx,
 {
     return !strcmp(cmd, "tempo") ? yae_set_tempo(ctx, arg) : AVERROR(ENOSYS);
 }
+*/
 
 AVFilter avfilter_af_atempo = {
     .name            = "atempo",

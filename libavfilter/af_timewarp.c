@@ -1213,7 +1213,7 @@ static int process_command(AVFilterContext *ctx,
 
 AVFilter avfilter_af_timewarp = {
     .name            = "timewarp",
-    .description     = NULL_IF_CONFIG_SMALL("Adjust audio tempo."),
+    .description     = NULL_IF_CONFIG_SMALL("Adjust audio tempo dynamically based on commans from UNIX pipe"),
     .init            = init,
     .uninit          = uninit,
     .query_formats   = query_formats,

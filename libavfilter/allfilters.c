@@ -41,6 +41,7 @@ void avfilter_register_all(void)
     REGISTER_FILTER (ANULL,       anull,       af);
     REGISTER_FILTER (ASPLIT,      asplit,      af);
     REGISTER_FILTER (ASYNCTS,     asyncts,     af);
+    REGISTER_FILTER (ATEMPO,      atempo,      af);
     REGISTER_FILTER (CHANNELMAP,  channelmap,  af);
     REGISTER_FILTER (CHANNELSPLIT,channelsplit,af);
     REGISTER_FILTER (JOIN,        join,        af);

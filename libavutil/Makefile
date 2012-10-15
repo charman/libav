@@ -29,6 +29,7 @@ HEADERS = adler32.h                                                     \
           md5.h                                                         \
           mem.h                                                         \
           dict.h                                                        \
+          old_pix_fmts.h                                                \
           opt.h                                                         \
           parseutils.h                                                  \
           pixdesc.h                                                     \
@@ -65,10 +66,10 @@ OBJS = adler32.o                                                        \
        float_dsp.o                                                      \
        imgutils.o                                                       \
        intfloat_readwrite.o                                             \
-       inverse.o                                                        \
        lfg.o                                                            \
        lls.o                                                            \
        log.o                                                            \
+       log2_tab.o                                                       \
        lzo.o                                                            \
        mathematics.o                                                    \
        md5.o                                                            \
@@ -89,6 +90,8 @@ OBJS = adler32.o                                                        \
 
 OBJS-$(HAVE_MSVCRT) += ../compat/msvcrt/snprintf.o                      \
                        ../compat/strtod.o
+
+SKIPHEADERS          = old_pix_fmts.h
 
 TESTPROGS = adler32                                                     \
             aes                                                         \

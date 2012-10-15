@@ -479,12 +479,6 @@ typedef struct DSPContext {
 
     void (*shrink[4])(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
 
-    /* mlp/truehd functions */
-    void (*mlp_filter_channel)(int32_t *state, const int32_t *coeff,
-                               int firorder, int iirorder,
-                               unsigned int filter_shift, int32_t mask, int blocksize,
-                               int32_t *sample_buffer);
-
     /**
      * Calculate scalar product of two vectors.
      * @param len length of vectors, should be multiple of 16
@@ -605,17 +599,14 @@ static inline int get_penalty_factor(int lambda, int lambda2, int type){
 void ff_dsputil_init_alpha(DSPContext* c, AVCodecContext *avctx);
 void ff_dsputil_init_arm(DSPContext* c, AVCodecContext *avctx);
 void ff_dsputil_init_bfin(DSPContext* c, AVCodecContext *avctx);
-void ff_dsputil_init_mmi(DSPContext* c, AVCodecContext *avctx);
 void ff_dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx);
 void ff_dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx);
 void ff_dsputil_init_sh4(DSPContext* c, AVCodecContext *avctx);
 void ff_dsputil_init_vis(DSPContext* c, AVCodecContext *avctx);
 
 void ff_dsputil_init_dwt(DSPContext *c);
-void ff_mlp_init(DSPContext* c, AVCodecContext *avctx);
-void ff_mlp_init_x86(DSPContext* c, AVCodecContext *avctx);
 
-#if (ARCH_ARM && HAVE_NEON) || ARCH_PPC || HAVE_MMI || HAVE_MMX
+#if (ARCH_ARM && HAVE_NEON) || ARCH_PPC || HAVE_MMX
 #   define STRIDE_ALIGN 16
 #else
 #   define STRIDE_ALIGN 8
